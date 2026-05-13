@@ -6,8 +6,8 @@ Customer places an order → row appears in **Google Sheet** → **WhatsApp** op
 - Static site: `index.html`, `styles.css`, `app.js`, `products.js`, `catalog.json`
 - Backend: Google Apps Script (`google-apps-script/Code.gs`)
 - Storage: Google Sheet
-- **Primary deployment:** [Netlify](https://www.netlify.com/) — GitHub-connected site + serverless **`save-order`** function for reliable order POSTs to Apps Script. Example: `https://mangal-provision-store.netlify.app/`
-- Other free options (§3): GitHub Pages, Cloudflare Pages, Netlify Drop
+- **Primary deployment:** [GitHub Pages](https://pages.github.com/) — static hosting; orders use a **hidden form POST** to your Apps Script Web App (no server). Repo includes an empty **`.nojekyll`** so Pages does not run Jekyll on these files.
+- **Optional:** [Netlify](https://www.netlify.com/) with **`useNetlifyOrderProxy: true`** in `products.js` plus **`netlify/functions/save-order`** if you want a server-side POST proxy (see §3).
 
 ---
 
@@ -20,7 +20,7 @@ python3 -m http.server 8080
 # open http://localhost:8080
 ```
 
-Until you set **`appsScriptUrl`** in `products.js` (§2) — and on Netlify **`APPS_SCRIPT_WEBAPP_URL`** (§3) if you use the proxy — the order button will skip the Sheet save and only open WhatsApp.
+Until you set **`appsScriptUrl`** in `products.js` (§2), the order button will skip the Sheet save and only open WhatsApp. If you use the **Netlify proxy** (`useNetlifyOrderProxy: true`), also set **`APPS_SCRIPT_WEBAPP_URL`** on Netlify (§3).
 
 ---
 
@@ -38,7 +38,7 @@ Until you set **`appsScriptUrl`** in `products.js` (§2) — and on Netlify **`A
 
 ### Connect the website (set `appsScriptUrl`)
 
-The repo ships with a **placeholder** in `products.js` so your real Web App URL is **not** committed to Git (treat the `/exec` URL like a secret).
+The repo may ship a **placeholder** in `products.js` so you can avoid committing the Web App URL; this checkout uses the deployed `/exec` URL directly (anyone can see it in the browser on your live site).
 
 1. Open **`products.js`** in the project root.
 2. Set **`appsScriptUrl`** to the Web app URL you copied in step 6 (must end with **`/exec`**):
@@ -46,12 +46,12 @@ The repo ships with a **placeholder** in `products.js` so your real Web App URL 
 ```js
 window.SHOP_CONFIG = {
   // ...
-  appsScriptUrl: 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE', // ← replace with your real URL
+  appsScriptUrl: 'https://script.google.com/macros/s/…/exec',
   // ...
 };
 ```
 
-3. If you deploy on **Netlify**, add the **same** string as **`APPS_SCRIPT_WEBAPP_URL`** (§3, step 2). The storefront and the `save-order` function both need that value; leaving the placeholder in `products.js` disables Sheet saves even when the env var is set.
+3. **GitHub Pages (default):** no extra env vars — the browser POSTs the order to **`appsScriptUrl`** via a hidden form. **Netlify proxy (optional):** set **`useNetlifyOrderProxy: true`** in `products.js` and add **`APPS_SCRIPT_WEBAPP_URL`** in Netlify (§3). The storefront still needs a real **`appsScriptUrl`** in the HTML you deploy; the env var is only for the serverless `save-order` function.
 
 ### Health check (optional)
 
@@ -77,9 +77,11 @@ Save, then **Deploy → Manage deployments → New version → Deploy** (or edit
 
 Google’s Web App URL returns **302 redirects**. In the browser, **`fetch()` often turns the follow-up into GET**, so `doPost` never receives your JSON.
 
-**On Netlify:** set **`APPS_SCRIPT_WEBAPP_URL`** (see §3). The storefront calls **`/.netlify/functions/save-order`**, which forwards the JSON using **Node** (redirects + POST body behave correctly). On **`*.netlify.app`** this is automatic; on a **custom domain** set `"orderProxyUrl": "/.netlify/functions/save-order"` in `products.js`.
+**Default (GitHub Pages, `useNetlifyOrderProxy: false`):** the site uses a **hidden form POST** into an iframe (`formPostToSheet_` in `app.js`) so Apps Script receives the payload without relying on `fetch()` redirects.
 
-**Fallback:** hidden **form POST** into an iframe (`formPostToSheet_` in `app.js`). If the sheet is still empty, use **Executions** in Apps Script and **`?sheetdebug=1`** (see “Debug blank Orders sheet” above).
+**Optional Netlify proxy:** set **`useNetlifyOrderProxy: true`** in `products.js`, set **`APPS_SCRIPT_WEBAPP_URL`** on Netlify (§3), and deploy on Netlify. The storefront then calls **`/.netlify/functions/save-order`**, which forwards JSON using **Node**. On a **Netlify custom domain**, set **`orderProxyUrl`** to **`"/.netlify/functions/save-order"`** as well.
+
+If the sheet is still empty, use **Executions** in Apps Script and **`?sheetdebug=1`** (see “Debug blank Orders sheet” below).
 
 After changing `Code.gs`, republish a **new deployment version** in Apps Script.
 
@@ -87,60 +89,54 @@ After changing `Code.gs`, republish a **new deployment version** in Apps Script.
 
 1. **Apps Script → Executions** — open the latest run after you click *Place My Order*. If `doPost` throws (e.g. no spreadsheet), the error appears there.
 2. **Script bound to the Sheet?** Open the script via **Extensions → Apps Script** on the same file that has the `Orders` tab. If the project was created at script.google.com, set **`SPREADSHEET_ID`** (see above).
-3. **Browser console** — add `?sheetdebug=1` to your site URL or run `localStorage.setItem('mangalSheetDebug','1')` and reload. Submit an order; logs show whether the **Netlify proxy** or **form fallback** ran and the proxy HTTP status.
+3. **Browser console** — add `?sheetdebug=1` to your site URL or run `localStorage.setItem('mangalSheetDebug','1')` and reload. Submit an order; logs show **form POST** to Apps Script, or **Netlify proxy** status when `useNetlifyOrderProxy` is true.
 4. **Network tab** — filter **All** (not only Fetch/XHR). Look for `save-order` (Netlify) or **POST** to `script.google.com`.
 
 ---
 
-## 3. Deploy (Netlify is primary; alternatives below)
+## 3. Deploy
 
-**This repo targets Netlify first** (`netlify.toml`, `netlify/functions/save-order.mjs`). Other hosts serve the static files fine, but **order → Google Sheet** needs either Netlify’s proxy or the browser form fallback (see §2).
+**Default:** GitHub Pages — static files only; set **`appsScriptUrl`** in `products.js` and keep **`useNetlifyOrderProxy: false`** (default) so orders POST via the hidden form (§2).
 
-### Netlify (recommended — Git + order proxy)
+**Optional:** Netlify — same static files plus **`netlify/functions/save-order.mjs`**. Set **`useNetlifyOrderProxy: true`** in `products.js` when you want the server proxy instead of the form.
 
-This is the **default / production** setup for this project.
+### GitHub Pages (recommended for this repo)
+
+1. Push your branch (e.g. `main`) to GitHub.
+2. Repo **Settings → Pages** → **Build and deployment** → Source: **Deploy from a branch** → Branch **`main`** / folder **`/`** (root) → Save.
+3. Keep **`.nojekyll`** in the repo root (already present) so GitHub does not treat the site as a Jekyll project.
+4. Set **`appsScriptUrl`** in `products.js` to your Web App `/exec` URL in the copy you publish (see §2). With **`useNetlifyOrderProxy: false`**, no Netlify env vars are required.
+5. Project sites load at **`https://<user>.github.io/<repo>/`**. Paths like `products.js` and `catalog.json` are relative to that URL — no extra base path config if `index.html` lives at the repo root.
+
+### Netlify (optional — order proxy)
+
+Use this when you want **`useNetlifyOrderProxy: true`** and the **`save-order`** function (Node handles Google’s redirects; optional if the form POST is enough).
 
 1. **Create the site:** In [Netlify](https://app.netlify.com) → **Add new site → Import an existing project** → connect this GitHub repo.  
    - **Build command:** leave empty (static files only).  
    - **Publish directory:** `/` (repository root), or `.` depending on the UI — the folder that contains `index.html`, `netlify.toml`, and `netlify/functions/`.
 
-2. **Environment variable (required for orders → Sheet):**  
-   - Open the site → **Site configuration** (gear) → **Environment variables** (under *Build & deploy* or *General* depending on Netlify UI version).  
-   - **Add a variable** (or *Add a single variable*):  
-     - **Key:** `APPS_SCRIPT_WEBAPP_URL`  
-     - **Value:** paste your Apps Script **Web app** URL here — the full `/exec` URL from **Deploy → Manage deployments** (same value you set for **`appsScriptUrl`** in `products.js`; see §2).  
-   - **Scopes:** choose **All deploy contexts** *or* at minimum **Production** so the live site sees it.  
-   - **Save.**
+2. In **`products.js`:** set **`useNetlifyOrderProxy: true`**, set **`appsScriptUrl`**, and on a **custom domain** set **`orderProxyUrl`** to **`"/.netlify/functions/save-order"`**.
 
-   Also update **`appsScriptUrl`** in `products.js` to that same URL before you push/deploy the static site, or orders will not POST to the Sheet (the placeholder is intentional for public repos).
+3. **Environment variable (required for the proxy):**  
+   - Site → **Site configuration** → **Environment variables**.  
+   - **Key:** `APPS_SCRIPT_WEBAPP_URL`  
+   - **Value:** your Apps Script Web App `/exec` URL (same value as **`appsScriptUrl`**).  
+   - **Scopes:** **All deploy contexts** or at least **Production**.  
+   - **Save**, then redeploy so functions pick it up.
 
-3. **Redeploy:** After adding or changing env vars, trigger a new deploy so functions pick them up: **Deploys → Trigger deploy → Deploy site**, or push a commit to `main`. Optionally use **Clear cache and deploy site** if behaviour looks stale.
+4. **Local Netlify dev:** [Netlify CLI](https://docs.netlify.com/cli/get-started/) → `netlify link` → `netlify dev`. Set **`APPS_SCRIPT_WEBAPP_URL`** (linked site or `.env`).
 
-4. **Local Netlify dev:** With [Netlify CLI](https://docs.netlify.com/cli/get-started/), run `netlify link` then `netlify dev`. Env vars can be loaded from the linked site or a root `.env` file (see Netlify docs); `APPS_SCRIPT_WEBAPP_URL` must be set for `save-order` to work locally.
-
-The storefront calls **`/.netlify/functions/save-order`**, which forwards the order JSON to Apps Script using **Node** (handles Google’s **302 redirects** correctly). On **`*.netlify.app`** the app uses this proxy automatically. If you use a **custom domain**, set in `products.js`:
-
-```js
-"orderProxyUrl": "/.netlify/functions/save-order"
-```
-
-### Netlify Drop (fastest — drag & drop)
+### Netlify Drop (drag & drop)
 
 1. Go to <https://app.netlify.com/drop>.
 2. Drag the **project folder** in.
-3. Still add **`APPS_SCRIPT_WEBAPP_URL`** under site settings if you need the order proxy (Drop sites support env vars after creation). Edit **`appsScriptUrl`** in `products.js` to the same URL before zipping/uploading, or Sheet saves will stay disabled.
+3. For the proxy: set **`useNetlifyOrderProxy: true`** in `products.js`, add **`APPS_SCRIPT_WEBAPP_URL`**, and set **`appsScriptUrl`** before uploading.
 4. Netlify gives you a public URL.
 
-### GitHub Pages
-
-```bash
-git push -u origin main
-```
-
-In your GitHub repo: **Settings → Pages → Deploy from branch → `main` / root → Save.**
-Site goes live at `https://<user>.github.io/<repo>/`.
-
 ### Cloudflare Pages
+
+Same static output as GitHub Pages. Keep **`useNetlifyOrderProxy: false`** and set **`appsScriptUrl`** unless you add a separate worker proxy. Steps:
 
 1. <https://pages.cloudflare.com> → **Create project → Connect to Git**.
 2. Build command: *(leave empty)*. Output directory: `/`.
@@ -180,13 +176,16 @@ window.SHOP_CONFIG = {
   ownerWhatsApp: "919403393688",      // country code, no +, no spaces
   alternatePhone: "+91 88052 65233",
   location: "Pune, Maharashtra",
-  appsScriptUrl: "…",                 // Web App /exec URL (set in your clone; not committed in this repo’s default)
-  orderProxyUrl: "",                  // optional; use "/.netlify/functions/save-order" on Netlify custom domain
+  appsScriptUrl: "…",                 // Web App /exec URL
+  useNetlifyOrderProxy: false,        // true only on Netlify when using save-order proxy
+  orderProxyUrl: "",                  // with proxy + custom domain: "/.netlify/functions/save-order"
   catalogUrl: "catalog.json"          // optional; path to product catalog JSON
 };
 ```
 
-On Netlify, set **`APPS_SCRIPT_WEBAPP_URL`** to the **same** value as **`appsScriptUrl`** so the `save-order` function can forward orders. The default **`products.js`** in this repo uses a placeholder so the Web App URL is not stored in Git; for your live site, set **`appsScriptUrl`** in the file you actually deploy (or maintain a private fork) to match **`APPS_SCRIPT_WEBAPP_URL`**.
+**GitHub Pages (default):** keep **`useNetlifyOrderProxy: false`**. Set **`appsScriptUrl`** in the `products.js` you deploy; orders POST to Apps Script via the hidden form (no server env vars).
+
+**Netlify proxy:** set **`useNetlifyOrderProxy: true`**, deploy on Netlify, set **`APPS_SCRIPT_WEBAPP_URL`** to the same **`appsScriptUrl`** string, and set **`orderProxyUrl`** on a custom domain as in §3.
 
 The product catalog lives in **`catalog.json`** (same folder as `index.html` by default). `products.js` loads it with a synchronous request and sets **`window.CATALOG`**. Deploy **`catalog.json`** next to your HTML; use **`catalogUrl`** in config only if the file lives elsewhere.
 

@@ -1,5 +1,6 @@
-# Static site + serverless proxy so orders reach Google Apps Script (POST + redirects).
-# Set env var APPS_SCRIPT_WEBAPP_URL in Netlify UI to your /exec Web App URL (same as products.js appsScriptUrl).
+# Optional Netlify deploy: serverless proxy for orders (enable in products.js: useNetlifyOrderProxy: true).
+# Default storefront uses form POST to Apps Script (GitHub Pages, etc.); this function is unused then.
+# When proxy is enabled: set APPS_SCRIPT_WEBAPP_URL in Netlify UI to your /exec Web App URL.
 
 [build]
   publish = "."

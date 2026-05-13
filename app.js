@@ -193,19 +193,26 @@ function logSheet(...args) {
   if (sheetDebug()) console.log('[Mangal sheet]', ...args);
 }
 
+/** Netlify order proxy URL, or empty when disabled / not on Netlify (e.g. GitHub Pages). */
+function netlifyOrderProxyUrl() {
+  if (config.useNetlifyOrderProxy !== true) return '';
+  if (config.orderProxyUrl) return config.orderProxyUrl;
+  if (typeof location !== 'undefined' && /\.netlify\.app$/i.test(location.hostname)) {
+    return '/.netlify/functions/save-order';
+  }
+  return '';
+}
+
 /**
- * 1) Prefer Netlify function proxy (POST + redirects handled in Node) when available.
- * 2) Fallback: hidden form POST into iframe (works in some browsers; may be blocked by policies).
+ * 1) Optional: Netlify function proxy when useNetlifyOrderProxy is true (Node handles redirects).
+ * 2) Default: hidden form POST into iframe to appsScriptUrl (static hosts including GitHub Pages).
  */
 function saveToSheet(order) {
   if (!config.appsScriptUrl || config.appsScriptUrl.includes('PASTE_YOUR')) {
     return Promise.resolve(false);
   }
 
-  const proxyUrl = config.orderProxyUrl ||
-    (typeof location !== 'undefined' && /\.netlify\.app$/i.test(location.hostname)
-      ? '/.netlify/functions/save-order'
-      : '');
+  const proxyUrl = netlifyOrderProxyUrl();
 
   if (proxyUrl) {
     return fetch(proxyUrl, {
@@ -262,7 +269,7 @@ function formPostToSheet_(order) {
       form.appendChild(input);
 
       document.body.appendChild(form);
-      logSheet('form POST fallback to', config.appsScriptUrl);
+      logSheet('form POST to', config.appsScriptUrl);
       form.submit();
 
       let finished = false;

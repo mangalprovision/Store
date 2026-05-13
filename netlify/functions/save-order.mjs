@@ -1,4 +1,7 @@
 /**
+ * Optional Netlify function: enable from the storefront with SHOP_CONFIG.useNetlifyOrderProxy = true.
+ * When false (default), the site POSTs orders via a hidden form to Apps Script instead.
+ *
  * Forwards order JSON to Google Apps Script Web App.
  *
  * Google returns 302 → script.googleusercontent.com/macros/echo?...
