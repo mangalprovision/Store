@@ -14,8 +14,14 @@
 </head>
 <body>
   <header class="topbar">
-    <div><div class="brand">🌾 Mangal Provision</div><div class="subbrand">Super Shop · Pune</div></div>
-    <a class="whatsapp" id="waTop" target="_blank">WhatsApp</a>
+    <div class="topbar-left">
+      <div class="brand">🌾 Mangal Provision</div>
+      <div class="subbrand">Super Shop · Pune</div>
+    </div>
+    <div class="topbar-actions">
+      <a href="#cart" class="topbar-cart btn light" aria-label="View cart and order summary"><span class="topbar-cart-text">Cart</span><span id="cartCountTop">0</span></a>
+      <a class="whatsapp" id="waTop" target="_blank">WhatsApp</a>
+    </div>
   </header>
 
   <main>
@@ -26,7 +32,6 @@
         <p class="muted">Select products, enter your details, and submit. After that, WhatsApp opens with your order summary-you can review it and send it there, or skip if you’ve already messaged the shop.</p>
         <div class="hero-actions">
           <a href="#products" class="btn primary">Start Order</a>
-          <a href="#cart" class="btn light">View Cart <span id="cartCountTop">0</span></a>
         </div>
       </div>
     </section>
