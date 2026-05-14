@@ -1,7 +1,16 @@
 const config = window.SHOP_CONFIG;
 const catalog = window.CATALOG;
 const cart = new Map();
-let activeCategory = 'All';
+/** Step for +/− on product cards and order summary (kg or per-unit). */
+const QTY_STEP = 0.25;
+
+function categorySlug(cat) {
+  return String(cat)
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'category';
+}
 
 const $ = id => document.getElementById(id);
 const rupee = n => '₹' + Math.round(n || 0);
@@ -56,11 +65,34 @@ function selectedVariant(id) {
   return sel ? sel.options[sel.selectedIndex].text : 'Standard';
 }
 
-function renderTabs() {
-  const cats = ['All', ...Object.keys(catalog)];
-  $('categoryTabs').innerHTML = cats.map(c =>
-    `<button class="tab ${c === activeCategory ? 'active' : ''}" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</button>`
-  ).join('');
+function renderCategoryNav() {
+  const cats = Object.keys(catalog);
+  const nav = $('categoryNav');
+  if (!nav) return;
+  const links = [
+    `<a href="#products" class="cat-link">All</a>`,
+    ...cats.map(c => {
+      const id = categorySlug(c);
+      return `<a href="#cat-${id}" class="cat-link">${escapeHtml(c)}</a>`;
+    })
+  ];
+  nav.innerHTML = links.join('');
+  syncCategoryNavActive();
+}
+
+function syncCategoryNavActive() {
+  const nav = $('categoryNav');
+  if (!nav) return;
+  const h = (typeof location !== 'undefined' && location.hash) || '';
+  if (!h || h === '#products') {
+    nav.querySelectorAll('a.cat-link').forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#products');
+    });
+    return;
+  }
+  nav.querySelectorAll('a.cat-link').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === h);
+  });
 }
 
 function productCard(cat, p) {
@@ -76,9 +108,9 @@ function productCard(cat, p) {
     <div class="p-price">${priceLabel(p)}</div>
     ${variant}
     <div class="qty" role="group" aria-label="Quantity for ${escapeHtml(p.name)}">
-      <button data-action="qty" data-id="${id}" data-delta="-0.5" aria-label="Decrease ${escapeHtml(p.name)}">−</button>
+      <button data-action="qty" data-id="${id}" data-delta="${-QTY_STEP}" aria-label="Decrease ${escapeHtml(p.name)}">−</button>
       <input class="qty-input" id="qty_${id}" data-id="${id}" value="${q}" inputmode="decimal" aria-label="Quantity for ${escapeHtml(p.name)}">
-      <button data-action="qty" data-id="${id}" data-delta="0.5" aria-label="Increase ${escapeHtml(p.name)}">+</button>
+      <button data-action="qty" data-id="${id}" data-delta="${QTY_STEP}" aria-label="Increase ${escapeHtml(p.name)}">+</button>
     </div>
   </div>`;
 }
@@ -87,10 +119,10 @@ function renderProducts() {
   const term = $('search').value.trim().toLowerCase();
   let html = '';
   Object.entries(catalog).forEach(([cat, items]) => {
-    if (activeCategory !== 'All' && activeCategory !== cat) return;
     const filtered = items.filter(p => !term || p.name.toLowerCase().includes(term) || cat.toLowerCase().includes(term));
     if (!filtered.length) return;
-    html += `<div class="category"><h3>• ${escapeHtml(cat)}</h3><div class="product-grid">${filtered.map(p => productCard(cat, p)).join('')}</div></div>`;
+    const anchor = categorySlug(cat);
+    html += `<div id="cat-${anchor}" class="category anchor-category"><h3 class="category-title"><span class="category-title-text">${escapeHtml(cat)}</span></h3><div class="product-grid">${filtered.map(p => productCard(cat, p)).join('')}</div></div>`;
   });
   $('productList').innerHTML = html || '<p class="muted">No products found.</p>';
 }
@@ -102,14 +134,34 @@ function setQty(id, val) {
   if (qty > 0) {
     const found = findProduct(id);
     if (!found) return;
+    const existing = cart.get(id);
+    const hasPriceUi = !!$('var_' + id) || !!$('price_' + id);
+    let price;
+    let variant;
+    if (hasPriceUi) {
+      price = selectedPrice(id);
+      variant = selectedVariant(id);
+    } else if (existing) {
+      price = existing.price;
+      variant = existing.variant;
+    } else {
+      const p = found.p;
+      if (p.variants?.length) {
+        price = Number(p.variants[0].price);
+        variant = p.variants[0].label;
+      } else {
+        price = Number(p.price);
+        variant = 'Standard';
+      }
+    }
     cart.set(id, {
       id,
       category: found.cat,
       name: found.p.name,
       unit: found.p.unit || 'kg',
       qty,
-      price: selectedPrice(id),
-      variant: selectedVariant(id)
+      price,
+      variant
     });
   } else {
     cart.delete(id);
@@ -131,11 +183,19 @@ function renderCart() {
   $('cartItems').innerHTML = items.map(i => {
     const amt = i.qty * i.price;
     total += amt;
+    const label = escapeHtml(i.name);
     return `<div class="cart-row">
-      <div><strong>${escapeHtml(i.name)}</strong>
+      <div class="cart-row-info"><strong>${label}</strong>
         <div class="small muted">${escapeHtml(i.variant)} · ${i.qty} ${i.unit} × ${rupee(i.price)}</div>
       </div>
-      <strong>${rupee(amt)}</strong>
+      <div class="cart-row-end">
+        <div class="qty qty--cart" role="group" aria-label="Quantity for ${label}">
+          <button type="button" data-action="cart-qty" data-id="${escapeHtml(i.id)}" data-delta="${-QTY_STEP}" aria-label="Decrease ${label}">−</button>
+          <span class="qty-cart-mid" aria-hidden="true">${i.qty}</span>
+          <button type="button" data-action="cart-qty" data-id="${escapeHtml(i.id)}" data-delta="${QTY_STEP}" aria-label="Increase ${label}">+</button>
+        </div>
+        <strong class="cart-row-total">${rupee(amt)}</strong>
+      </div>
     </div>`;
   }).join('');
   $('total').textContent = rupee(total);
@@ -316,22 +376,78 @@ async function submitOrder() {
   }
 }
 
+function goToCustomerDetails(ev) {
+  if (ev) ev.preventDefault();
+  const details = $('details');
+  if (!details) return;
+  details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    history.replaceState(null, '', `${location.pathname}${location.search}#details`);
+  } catch (_) {}
+  setTimeout(() => $('name')?.focus({ preventScroll: true }), 450);
+}
+
+function updateStickyMetrics() {
+  const top = $('siteHeaderTop');
+  const header = $('siteHeader');
+  const el = top || header;
+  if (!el) return;
+  const h = Math.ceil(el.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--header-h', `${h}px`);
+  document.documentElement.style.setProperty('--sticky-pad', `${h + 12}px`);
+}
+
 function init() {
   $('waTop').href = waLink('Hello, I want to place an order from Mangal Provision Super Shop.');
-  renderTabs();
+  renderCategoryNav();
   renderProducts();
   renderCart();
+  updateStickyMetrics();
 
-  $('search').addEventListener('input', renderProducts);
+  const header = $('siteHeader');
+  if (header && typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => updateStickyMetrics());
+    ro.observe(header);
+  }
+  window.addEventListener('resize', updateStickyMetrics);
+  if (window.matchMedia) {
+    window.matchMedia('(min-width: 768px)').addEventListener('change', updateStickyMetrics);
+  }
+
+  $('search').addEventListener('input', () => {
+    renderProducts();
+    requestAnimationFrame(updateStickyMetrics);
+  });
   $('submitBtn').addEventListener('click', submitOrder);
 
-  $('categoryTabs').addEventListener('click', e => {
-    const t = e.target.closest('.tab');
-    if (!t) return;
-    activeCategory = t.dataset.cat;
-    renderTabs();
-    renderProducts();
-  });
+  $('checkoutBtn')?.addEventListener('click', goToCustomerDetails);
+
+  const categoryNav = $('categoryNav');
+  if (categoryNav) {
+    categoryNav.addEventListener('click', e => {
+      const a = e.target.closest('a.cat-link');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      if (href === '#products') {
+        e.preventDefault();
+        $('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', `${location.pathname}${location.search}`);
+        syncCategoryNavActive();
+        return;
+      }
+      if (href && href.startsWith('#cat-')) {
+        e.preventDefault();
+        const el = document.querySelector(href);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', `${location.pathname}${location.search}${href}`);
+        }
+        syncCategoryNavActive();
+      }
+    });
+  }
+
+  window.addEventListener('hashchange', syncCategoryNavActive);
 
   $('productList').addEventListener('click', e => {
     const btn = e.target.closest('button[data-action="qty"]');
@@ -339,6 +455,15 @@ function init() {
     const id = btn.dataset.id;
     const delta = Number(btn.dataset.delta);
     const cur = Number($('qty_' + id)?.value || 0);
+    setQty(id, Math.max(0, cur + delta));
+  });
+
+  $('cartItems').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action="cart-qty"]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const delta = Number(btn.dataset.delta);
+    const cur = cart.get(id)?.qty || 0;
     setQty(id, Math.max(0, cur + delta));
   });
 
@@ -352,6 +477,12 @@ function init() {
       if (cur) setQty(id, cur.qty);
     }
   });
+
+  syncCategoryNavActive();
+  if (location.hash) {
+    const el = document.querySelector(location.hash);
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
+  }
 }
 
 init();

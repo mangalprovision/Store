@@ -13,14 +13,22 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-left">
-      <div class="brand">🌾 Mangal Provision</div>
-      <div class="subbrand">Super Shop · Pune</div>
-    </div>
-    <div class="topbar-actions">
-      <a href="#cart" class="topbar-cart btn light" aria-label="View cart and order summary"><span class="topbar-cart-text">Cart</span><span id="cartCountTop">0</span></a>
-      <a class="whatsapp" id="waTop" target="_blank">WhatsApp</a>
+  <header class="site-header" id="siteHeader">
+    <div class="site-header-top" id="siteHeaderTop">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="brand">🌾 Mangal Provision</div>
+          <div class="subbrand">Super Shop · Pune</div>
+        </div>
+        <div class="topbar-actions">
+          <a href="#cart" class="topbar-cart btn light" aria-label="View cart and order summary"><span class="topbar-cart-text">Cart</span><span id="cartCountTop">0</span></a>
+          <a class="whatsapp" id="waTop" target="_blank">WhatsApp</a>
+        </div>
+      </div>
+      <div class="search-strip">
+        <label class="visually-hidden" for="search">Search products</label>
+        <input type="search" id="search" class="search search--strip" placeholder="Search rice, dal, kaju..." autocomplete="off" enterkeyhint="search" />
+      </div>
     </div>
   </header>
 
@@ -29,12 +37,35 @@
       <div class="hero-card">
         <p class="pill">Fresh groceries & premium dry fruits</p>
         <h1>Order groceries easily from your mobile.</h1>
-        <p class="muted">Select products, enter your details, and submit. After that, WhatsApp opens with your order summary-you can review it and send it there, or skip if you’ve already messaged the shop.</p>
+        <p class="muted">Select products, review your cart, then checkout to enter delivery details and place your order. WhatsApp opens with your summary afterward; you can review and send it there, or skip if you have already messaged the shop.</p>
         <div class="hero-actions">
           <a href="#products" class="btn primary">Start Order</a>
         </div>
       </div>
     </section>
+
+    <div class="shop-area">
+      <div class="products-layout">
+        <nav id="categoryNav" class="category-nav" aria-label="Product categories"></nav>
+        <section id="products" class="products-section">
+          <div class="section-head">
+            <div>
+              <h2>Select Products</h2>
+              <p class="muted">Use the category list on the left to jump to a section, or search. Qty supports 0.25 kg steps (quarter kg).</p>
+            </div>
+          </div>
+          <div id="productList"></div>
+        </section>
+      </div>
+
+      <section id="cart" class="cart-card">
+        <h2>🧾 Order Summary</h2>
+        <div id="cartItems" class="cart-items empty">Add products above to see your order summary.</div>
+        <div class="total-row"><span>Estimated Total</span><strong id="total">₹0</strong></div>
+        <button type="button" id="checkoutBtn" class="btn primary wide">Checkout</button>
+        <p class="small muted">Tap Checkout when you are ready to enter your name, phone, and delivery address.</p>
+      </section>
+    </div>
 
     <section class="customer-card" id="details">
       <h2>Customer Details</h2>
@@ -56,26 +87,9 @@
         </label>
       </div>
       <label>Special Instructions<textarea id="notes" placeholder="Pack separately, call before delivery, brand preference..."></textarea></label>
+      <button type="button" id="submitBtn" class="btn primary wide">📦 Place My Order</button>
+      <p class="small muted">After you place your order, you will be taken to WhatsApp with your order details filled in. Sending that WhatsApp message is optional—review and tap Send if you would like the shop to see the same details there too.</p>
     </section>
-
-    <div class="shop-grid">
-      <section id="products" class="products-section">
-        <div class="section-head">
-          <div><h2>Select Products</h2><p class="muted">Use search or category filter. Qty supports 0.5 kg steps.</p></div>
-          <input id="search" class="search" placeholder="Search rice, dal, kaju..." />
-        </div>
-        <div id="categoryTabs" class="tabs"></div>
-        <div id="productList"></div>
-      </section>
-
-      <section id="cart" class="cart-card">
-        <h2>🧾 Order Summary</h2>
-        <div id="cartItems" class="cart-items empty">Add products above to see your order summary.</div>
-        <div class="total-row"><span>Estimated Total</span><strong id="total">₹0</strong></div>
-        <button id="submitBtn" class="btn primary wide">📦 Place My Order</button>
-        <p class="small muted">After you place your order, you’ll be taken to WhatsApp with your order details filled in. Sending that WhatsApp message is optional-review and tap Send if you’d like the shop to see the same details there too.</p>
-      </section>
-    </div>
   </main>
 
   <footer class="footer">
