@@ -12,6 +12,29 @@ function categorySlug(cat) {
     .replace(/^-|-$/g, '') || 'category';
 }
 
+/** Category names in display order (dry fruits first per SHOP_CONFIG.categoryOrder). */
+function orderedCategories() {
+  const keys = Object.keys(catalog);
+  const order = config.categoryOrder;
+  if (!Array.isArray(order) || !order.length) return keys;
+  const seen = new Set();
+  const result = [];
+  for (const cat of order) {
+    if (keys.includes(cat) && !seen.has(cat)) {
+      result.push(cat);
+      seen.add(cat);
+    }
+  }
+  for (const cat of keys) {
+    if (!seen.has(cat)) result.push(cat);
+  }
+  return result;
+}
+
+function orderedCatalogEntries() {
+  return orderedCategories().map(cat => [cat, catalog[cat]]);
+}
+
 const $ = id => document.getElementById(id);
 const rupee = n => '₹' + Math.round(n || 0);
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({
@@ -66,7 +89,7 @@ function selectedVariant(id) {
 }
 
 function renderCategoryNav() {
-  const cats = Object.keys(catalog);
+  const cats = orderedCategories();
   const nav = $('categoryNav');
   if (!nav) return;
   const links = [
@@ -118,7 +141,7 @@ function productCard(cat, p) {
 function renderProducts() {
   const term = $('search').value.trim().toLowerCase();
   let html = '';
-  Object.entries(catalog).forEach(([cat, items]) => {
+  orderedCatalogEntries().forEach(([cat, items]) => {
     const filtered = items.filter(p => !term || p.name.toLowerCase().includes(term) || cat.toLowerCase().includes(term));
     if (!filtered.length) return;
     const anchor = categorySlug(cat);

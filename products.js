@@ -13,7 +13,29 @@ window.SHOP_CONFIG = {
   /** Netlify custom domain: set to "/.netlify/functions/save-order" when useNetlifyOrderProxy is true. */
   orderProxyUrl: '',
   /** Path to catalog JSON (relative to the page URL). */
-  catalogUrl: 'catalog.json'
+  catalogUrl: 'catalog.json',
+  /**
+   * Display order for product categories (nav + listing). Dry fruits first, then groceries.
+   * Categories not listed appear after these, in catalog.json key order.
+   */
+  categoryOrder: [
+    'Cashews',
+    'Almonds',
+    'Walnut',
+    'Raisins',
+    'Dates',
+    'Anjir',
+    'Pista',
+    'Awala & Jardalu',
+    'Rice',
+    'Wheat',
+    'Pulses',
+    'Millets',
+    'Mirchi Powder',
+    'Masala',
+    'Whole Red Chilli',
+    'Other Spices'
+  ]
 };
 
 (function loadCatalog() {
