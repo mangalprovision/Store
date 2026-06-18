@@ -4,7 +4,7 @@ window.SHOP_CONFIG = {
   alternatePhone: '+91 88052 65233',
   location: 'Pune, Maharashtra',
   appsScriptUrl:
-    'https://script.google.com/macros/s/AKfycby-zGl-Y-QRJX1F_aAhdflhcP_aYiL-EFEtZTvHIv4ls3sbKZ3M4EnKdrAUzmwqPqenuA/exec',
+    'https://script.google.com/macros/s/AKfycbxZ6eGvzipnAY1dDQf63jZdcW_A1M6Ikjr6n-q7GTMgHDcuPv6i78lfFAY_OZrL1Pea_A/exec',
   /**
    * Netlify-only: when true, POST JSON to /.netlify/functions/save-order (or orderProxyUrl).
    * Default false = browser form POST to appsScriptUrl (GitHub Pages, static hosts, file:// dev).
