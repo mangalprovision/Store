@@ -16,7 +16,7 @@ async function loadCatalog() {
 
   const response =
     await fetch(
-      "YOUR_SCRIPT_URL?mode=products"
+      "https://script.google.com/macros/s/AKfycbxZ6eGvzipnAY1dDQf63jZdcW_A1M6Ikjr6n-q7GTMgHDcuPv6i78lfFAY_OZrL1Pea_A/exec?mode=products"
     );
 
   catalog =
