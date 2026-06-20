@@ -1,5 +1,6 @@
 const config = window.SHOP_CONFIG;
-const catalog = window.CATALOG;
+/**const catalog = window.CATALOG; */
+let catalog = {};
 const cart = new Map();
 /** Step for +/− on product cards and order summary (kg or per-unit). */
 const QTY_STEP = 0.25;
@@ -10,6 +11,16 @@ function categorySlug(cat) {
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'category';
+}
+async function loadCatalog() {
+
+  const response =
+    await fetch(
+      "YOUR_SCRIPT_URL?mode=products"
+    );
+
+  catalog =
+    await response.json();
 }
 
 /** Category names in display order (dry fruits first per SHOP_CONFIG.categoryOrder). */
@@ -508,4 +519,12 @@ function init() {
   }
 }
 
-init();
+/**init(); */
+
+(async () => {
+
+  await loadCatalog();
+
+  init();
+
+})();
