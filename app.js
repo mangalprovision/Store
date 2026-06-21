@@ -12,6 +12,11 @@ function categorySlug(cat) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'category';
 }
+
+/**function getQtyStep(product) {
+  return product.unit?.toLowerCase() === "pkt" ? 1 : 0.25;
+}**/
+
 /**async function loadCatalog() {
 
   const response =
