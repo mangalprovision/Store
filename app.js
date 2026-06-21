@@ -12,7 +12,7 @@ function categorySlug(cat) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'category';
 }
-async function loadCatalog() {
+/**async function loadCatalog() {
 
   const response =
     await fetch(
@@ -21,6 +21,84 @@ async function loadCatalog() {
 
   catalog =
     await response.json();
+} */
+
+async function loadCatalog() {
+
+  const CACHE_KEY = "mangal_catalog";
+  const CACHE_TIME_KEY = "mangal_catalog_time";
+
+  const CACHE_DURATION =
+      5 * 60 * 1000; // 5 minutes
+
+  try {
+
+    const cachedData =
+      localStorage.getItem(CACHE_KEY);
+
+    const cachedTime =
+      localStorage.getItem(CACHE_TIME_KEY);
+
+    if (
+      cachedData &&
+      cachedTime &&
+      (Date.now() - Number(cachedTime))
+        < CACHE_DURATION
+    ) {
+
+      console.log(
+        "Loading catalog from cache"
+      );
+
+      catalog =
+        JSON.parse(cachedData);
+
+      return;
+    }
+
+    console.log(
+      "Loading catalog from Google Sheet"
+    );
+
+    const response =
+      await fetch(
+        "https://script.google.com/macros/s/AKfycbxZ6eGvzipnAY1dDQf63jZdcW_A1M6Ikjr6n-q7GTMgHDcuPv6i78lfFAY_OZrL1Pea_A/exec?mode=products"
+      );
+
+    catalog =
+      await response.json();
+
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify(catalog)
+    );
+
+    localStorage.setItem(
+      CACHE_TIME_KEY,
+      Date.now().toString()
+    );
+
+  } catch (err) {
+
+    console.error(
+      "Catalog load failed",
+      err
+    );
+
+    if (
+      localStorage.getItem(CACHE_KEY)
+    ) {
+
+      catalog =
+        JSON.parse(
+          localStorage.getItem(CACHE_KEY)
+        );
+
+      console.log(
+        "Using cached catalog because API failed"
+      );
+    }
+  }
 }
 
 /** Category names in display order (dry fruits first per SHOP_CONFIG.categoryOrder). */
