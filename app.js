@@ -353,6 +353,7 @@ function whatsAppText(order) {
     msg += `• ${i.name} (${i.variant}): ${i.qty} ${i.unit} × ${rupee(i.price)} = ${rupee(i.qty * i.price)}\n`
   );
   msg += `\n💰 *Estimated Total:* ${rupee(order.total)}`;
+  msg += `\n⏱️ *Estimated Delivery:* 4–5 days*`;
   msg += `\n🚚 *Note:* Delivery charges may apply based on your location. The final bill amount will be confirmed at the time of order delivery.`;
   if (order.notes) msg += `\n\n📝 *Notes:* ${order.notes}`;
   return msg;
