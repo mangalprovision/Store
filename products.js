@@ -14,7 +14,7 @@ window.SHOP_CONFIG = {
   orderProxyUrl: '',
   /** Path to catalog JSON (relative to the page URL). */
   catalogUrl: 'catalog.json',
-  productCacheMinutes: 30,
+  productCacheMinutes: 3,
   /**
    * Display order for product categories (nav + listing). Dry fruits first, then groceries.
    * Categories not listed appear after these, in catalog.json key order.
