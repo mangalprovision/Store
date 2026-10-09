@@ -1,5 +1,4 @@
 const config = window.SHOP_CONFIG;
-/**const catalog = window.CATALOG; */
 let catalog = {};
 const cart = new Map();
 /** Step for +/− on product cards and order summary (kg or per-unit). */
@@ -11,99 +10,6 @@ function categorySlug(cat) {
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'category';
-}
-
-/**function getQtyStep(product) {
-  return product.unit?.toLowerCase() === "pkt" ? 1 : 0.25;
-}**/
-
-/**async function loadCatalog() {
-
-  const response =
-    await fetch(
-      "https://script.google.com/macros/s/AKfycbxZ6eGvzipnAY1dDQf63jZdcW_A1M6Ikjr6n-q7GTMgHDcuPv6i78lfFAY_OZrL1Pea_A/exec?mode=products"
-    );
-
-  catalog =
-    await response.json();
-} */
-
-async function loadCatalog() {
-
-  const CACHE_KEY = "mangal_catalog";
-  const CACHE_TIME_KEY = "mangal_catalog_time";
-
-  const CACHE_DURATION =
-      5 * 60 * 1000; // 5 minutes
-
-  try {
-
-    const cachedData =
-      localStorage.getItem(CACHE_KEY);
-
-    const cachedTime =
-      localStorage.getItem(CACHE_TIME_KEY);
-
-    if (
-      cachedData &&
-      cachedTime &&
-      (Date.now() - Number(cachedTime))
-        < CACHE_DURATION
-    ) {
-
-      console.log(
-        "Loading catalog from cache"
-      );
-
-      catalog =
-        JSON.parse(cachedData);
-
-      return;
-    }
-
-    console.log(
-      "Loading catalog from Google Sheet"
-    );
-
-    const response =
-      await fetch(
-        "https://script.google.com/macros/s/AKfycbxZ6eGvzipnAY1dDQf63jZdcW_A1M6Ikjr6n-q7GTMgHDcuPv6i78lfFAY_OZrL1Pea_A/exec?mode=products"
-      );
-
-    catalog =
-      await response.json();
-
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify(catalog)
-    );
-
-    localStorage.setItem(
-      CACHE_TIME_KEY,
-      Date.now().toString()
-    );
-
-  } catch (err) {
-
-    console.error(
-      "Catalog load failed",
-      err
-    );
-
-    if (
-      localStorage.getItem(CACHE_KEY)
-    ) {
-
-      catalog =
-        JSON.parse(
-          localStorage.getItem(CACHE_KEY)
-        );
-
-      console.log(
-        "Using cached catalog because API failed"
-      );
-    }
-  }
 }
 
 /** Category names in display order (dry fruits first per SHOP_CONFIG.categoryOrder). */
@@ -353,8 +259,6 @@ function whatsAppText(order) {
     msg += `• ${i.name} (${i.variant}): ${i.qty} ${i.unit} × ${rupee(i.price)} = ${rupee(i.qty * i.price)}\n`
   );
   msg += `\n💰 *Estimated Total:* ${rupee(order.total)}`;
-  msg += `\n⏱️ *Estimated Delivery:* 4–5 days*`;
-  msg += `\n🚚 *Note:* Delivery charges may apply based on your location. The final bill amount will be confirmed at the time of order delivery.`;
   if (order.notes) msg += `\n\n📝 *Notes:* ${order.notes}`;
   return msg;
 }
@@ -516,7 +420,17 @@ function updateStickyMetrics() {
   document.documentElement.style.setProperty('--sticky-pad', `${h + 12}px`);
 }
 
-function init() {
+async function init() {
+  const cached = getValidCachedCatalog();
+  if (!cached && $('productList')) {
+    $('productList').innerHTML = `
+      <div class="products-loader" role="status" aria-live="polite">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <h3>🛒 Loading Products...</h3>
+        <p>Fetching the latest products and prices. Please wait...</p>
+      </div>`;
+  }
+  catalog = cached || await loadCatalog();
   $('waTop').href = waLink('Hello, I want to place an order from Mangal Provision Super Shop.');
   renderCategoryNav();
   renderProducts();
@@ -604,12 +518,4 @@ function init() {
   }
 }
 
-/**init(); */
-
-(async () => {
-
-  await loadCatalog();
-
-  init();
-
-})();
+init();
