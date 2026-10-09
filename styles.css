@@ -972,3 +972,9 @@ select:focus {
     border-radius: var(--radius-lg);
   }
 }
+.products-loader { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:50px 16px; min-height:200px; }
+.loading-spinner { width:40px; height:40px; border:4px solid #e5e7eb; border-top-color:#16a34a; border-radius:50%; animation:mangal-spin .8s linear infinite; margin-bottom:16px; }
+.products-loader h3 { margin:0 0 8px; color:#166534; font-size:19px; }
+.products-loader p { margin:0; color:#6b7280; font-size:14px; }
+@keyframes mangal-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .loading-spinner { animation:none; } }
